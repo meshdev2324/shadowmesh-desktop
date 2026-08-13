@@ -1,0 +1,30 @@
+# 🛡️ ShadowMesh Client-Core Rules
+
+> **Context**: Shared Rust core for Android, iOS, and Desktop via UniFFI.
+> **Inherits**: Root `.cursorrules` and `docs/agent.md`.
+
+---
+
+## 💎 CODE QUALITY STANDARDS
+
+1.  **UniFFI Compliance**:
+    *   Public interfaces MUST be defined in `src/shadowmesh.udl`.
+    *   Data structures MUST be supported by UniFFI (standard types, sequences, records).
+2.  **Safety**:
+    *   No `unwrap()` in production logic.
+    *   Use `thiserror` for library-level errors that cross the FFI boundary.
+3.  **Synchronization**:
+    *   Models MUST mirror `server-rust/src/core/models/`.
+    *   Verify compatibility in `tests/api_sync_test.rs`.
+
+---
+
+## 🧠 ADAPTIVE INTELLIGENCE RULES
+
+1.  **Escalation Logic**:
+    *   Maintain the `Auto` mode preference lifecycle: WireGuard (Normal) -> Fragmented (Quantum) -> VLESS (Reality).
+    *   DO NOT skip modes in the auto-retry loop unless `potential_dpi` is flagged as `true` in the `NetworkReport`.
+2.  **DPI Response**:
+    *   If `potential_dpi` is detected, the `VPNManager` MUST immediately escalate to `Fragmented` or `Reality` mode, bypassing the `Normal` attempt.
+3.  **MTU/MSS Enforcement**:
+    *   In `Fragmented` mode, strictly clamp to **MTU 576** and **MSS 536**. This is a hard requirement for DPI evasion.

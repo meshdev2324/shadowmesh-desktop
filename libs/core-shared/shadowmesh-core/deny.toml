@@ -1,0 +1,26 @@
+# cargo-deny configuration
+[advisories]
+vulnerability = "deny"
+unmaintained = "warn"
+unsound = "deny"
+notice = "warn"
+
+[licenses]
+unlicensed = "deny"
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "OpenSSL",
+]
+copyleft = "deny"
+
+[bans]
+multiple-versions = "warn"
+deny = [
+    { name = "lazy_static", reason = "Use OnceLock or LazyLock instead" },
+    { name = "openssl", reason = "Prefer aws-lc-rs or rustls for better safety" },
+]

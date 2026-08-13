@@ -1,0 +1,21 @@
+[package]
+name = "shadowmesh-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+shadowmesh_core = { path = ".." }
+
+[[bin]]
+name = "fragment_fuzzer"
+path = "fuzz_targets/fragment_fuzzer.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "binary_parser"
+path = "fuzz_targets/binary_parser.rs"
+test = false
+doc = false

@@ -1,0 +1,124 @@
+name: Desktop CI/CD (Public Standalone)
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test_desktop:
+    name: Test & Lint Desktop
+    if: github.repository != 'meshdev2324/shadowmesh-private'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libappindicator3-dev librsvg2-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "apps/desktop/package-lock.json"
+
+      - name: Install Desktop dependencies
+        working-directory: ./apps/desktop
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint Desktop
+        working-directory: ./apps/desktop
+        run: npm run lint
+
+      - name: Unit Test Desktop
+        working-directory: ./apps/desktop
+        run: npm run test
+
+      - name: Build E2E Desktop
+        working-directory: ./apps/desktop
+        run: npm run build:e2e
+
+      - name: E2E Test Desktop
+        working-directory: ./apps/desktop
+        run: |
+          npx playwright install --with-deps chromium
+          xvfb-run npm run test:e2e
+
+  create_release:
+    name: Build & Release Desktop - ${{ matrix.platform }}
+    if: github.repository != 'meshdev2324/shadowmesh-private' && startsWith(github.ref, 'refs/tags/v')
+    needs: test_desktop
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            os: windows-latest
+          - platform: linux-x64
+            os: ubuntu-latest
+          - platform: macos-arm64
+            os: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libappindicator3-dev librsvg2-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "apps/desktop/package-lock.json"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install Dependencies
+        working-directory: ./apps/desktop
+        run: |
+          npm i --legacy-peer-deps
+          npx playwright install --with-deps chromium
+
+      - name: Build Tauri App
+        working-directory: ./apps/desktop
+        run: npm run build
+        
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadowmesh-desktop-${{ matrix.platform }}
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+            apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 7
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/release/bundle/deb/*.deb
+            apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+          draft: false
+          prerelease: false

@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;800&display=swap');
+@import "tailwindcss";
+@config "./tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: #08090b;
+    --surface: #111318;
+    --primary: #6366f1;
+    --primary-rgb: 99, 102, 241;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+    --border: rgba(255, 255, 255, 0.06);
+    --surface-variant: #1e293b;
+  }
+
+  body {
+    @apply bg-background text-text-primary overflow-hidden h-screen w-screen selection:bg-primary/30;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  * {
+    @apply m-0 p-0 box-border;
+  }
+}
+
+@layer components {
+  /* Material 3 Styled Cards */
+  .m3-card {
+    @apply bg-surface rounded-4xl border border-white/5 relative overflow-hidden transition-all duration-300;
+  }
+
+  .m3-card-tonal {
+    @apply bg-surface/30 rounded-3xl border border-white/5 backdrop-blur-md transition-all duration-300;
+  }
+
+  /* Native Android Button Style */
+  .m3-button-filled {
+    @apply bg-primary text-white font-semibold rounded-full px-8 py-4 transition-all duration-200 active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2;
+  }
+
+  .m3-button-tonal {
+    @apply bg-white/5 text-primary font-semibold rounded-full px-8 py-4 transition-all duration-200 hover:bg-white/10 active:scale-95;
+  }
+
+  /* Navigation Bar / Rail */
+  .m3-nav-item {
+    @apply flex flex-col items-center justify-center gap-1 p-2 transition-all duration-200;
+  }
+
+  .m3-nav-indicator {
+    @apply absolute inset-0 bg-primary/20 rounded-full scale-x-125 -z-10 opacity-0 transition-all duration-300;
+  }
+
+  .m3-nav-item-active .m3-nav-indicator {
+    @apply opacity-100 scale-x-100;
+  }
+
+  /* Smooth Ambient Background */
+  .ambient-bg {
+    @apply absolute inset-0 -z-10 overflow-hidden pointer-events-none transition-all duration-1000;
+    background:
+      radial-gradient(circle at 50% -20%, rgba(var(--primary-rgb), 0.12), transparent 70%),
+      radial-gradient(circle at 0% 100%, rgba(var(--primary-rgb), 0.04), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(var(--primary-rgb), 0.04), transparent 50%);
+  }
+
+  /* Glassmorphism Textures */
+  .glass-card {
+    @apply bg-white/[0.02] backdrop-blur-3xl border border-white/10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)];
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+  }
+
+  .neon-glow-emerald {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+}
+
+@layer utilities {
+  /* Custom Scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full transition-colors hover:bg-white/20;
+  }
+
+  /* Material 3 Scrollbar variant */
+  .m3-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/20 hover:bg-primary/40;
+  }
+}

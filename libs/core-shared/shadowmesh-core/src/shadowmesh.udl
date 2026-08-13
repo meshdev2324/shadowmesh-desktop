@@ -1,0 +1,478 @@
+[Error]
+enum ShadowMeshError {
+  "AdaptiveFrictionRequired",
+  "KeyGenerationFailed",
+  "PowTimeout",
+  "ConnectionFailed",
+  "Unauthorized",
+  "Forbidden",
+  "SessionFrozen",
+  "NotFound",
+  "TooManyRequests",
+  "NodeNotFound",
+  "IoError",
+  "JsonError",
+  "InvalidDuration",
+  "ServerError",
+  "SocketTuningFailed",
+  "DnsResolutionError",
+  "Other",
+  "Common",
+};
+
+dictionary VPNNode {
+  string id;
+  string name;
+  string region;
+  string country;
+  string endpoint;
+  string public_key;
+  u32 load;
+  u32 latency;
+  boolean is_online;
+};
+
+dictionary VPNConfig {
+  string? private_key;
+  string public_key;
+  string address;
+  string endpoint;
+  string dns;
+  u32 mtu;
+  string traffic_mode;
+  RealityConfig? reality_config;
+};
+
+dictionary RealityConfig {
+  string server_ip;
+  u32 port;
+  string uuid;
+  string public_key;
+  string short_id;
+  string sni_target;
+  string? fingerprint;
+};
+
+dictionary ConnectionStats {
+  u64 bytes_received;
+  u64 bytes_sent;
+  u64 packets_received;
+  u64 packets_sent;
+  i64 last_handshake;
+  i64 connected_since;
+};
+
+dictionary ProtocolStats {
+  u64 quantum_sent;
+  u64 quantum_received;
+  u64 reality_sent;
+  u64 reality_received;
+};
+
+dictionary UserSettings {
+  boolean kill_switch_enabled;
+  boolean dns_leak_protection;
+  boolean emergency_recovery_enabled;
+  sequence<string> dns_servers;
+};
+
+dictionary PoWChallenge {
+  string challenge;
+  u32 difficulty;
+};
+
+dictionary PoWSolution {
+  string challenge;
+  string solution;
+};
+
+dictionary ActivationChallenge {
+  string challenge;
+  u32 difficulty;
+};
+
+dictionary ActivationRequest {
+  string code;
+  string device_name;
+  string device_type;
+  string device_id;
+  string hardware_fingerprint;
+  string? public_key;
+  record<string, string>? deep_fingerprint;
+  string? oob_nonce;
+  string? oob_sig;
+  i64? oob_ts;
+};
+
+dictionary ActivationResponse {
+  string message;
+  string? token;
+  string? plan;
+  string? expires_at;
+  i64 remaining_days;
+  string subscription_notice;
+  i32 devices_remaining;
+  string? vpn_config;
+  string? server_location;
+};
+
+dictionary HeartbeatResponse {
+  string message;
+  string device_id;
+  boolean session_active;
+  string subscription_notice;
+  string next_heartbeat;
+};
+
+dictionary HeartbeatRequest {
+  string device_id;
+  boolean background_mode;
+  record<string, string>? deep_fingerprint;
+  u64? bytes_sent_quantum;
+  u64? bytes_received_quantum;
+  u64? bytes_sent_reality;
+  u64? bytes_received_reality;
+};
+
+dictionary HealthStatus {
+  string status;
+  string version;
+  u64 uptime_seconds;
+};
+
+dictionary SpeedTestResult {
+  f64 latency_ms;
+  f64 download_speed_mbps;
+  f64 upload_speed_mbps;
+};
+
+enum SplitTunnelMode {
+  "Include",
+  "Exclude",
+};
+
+enum ServicePlan {
+  "Solo",
+  "Team",
+  "Premium",
+  "Family",
+  "Trial",
+};
+
+dictionary SplitTunnelConfig {
+  boolean enabled;
+  SplitTunnelMode mode;
+  sequence<string> app_list;
+};
+
+dictionary KillSwitchEvent {
+  u64 timestamp;
+  string event_type;
+  string details;
+};
+
+dictionary KillSwitchState {
+    boolean is_active;
+    boolean is_lockout;
+    record<string, boolean> feature_flags;
+    u64? last_remote_check;
+    boolean fallback_mode;
+};
+
+enum SecurityEventType {
+    "KillSwitchStateChange",
+    "JailbreakRootDetected",
+    "CertificateValidationFailed",
+    "TamperingAlert",
+    "LoginAttempt",
+    "Logout",
+    "PanicInitiated",
+};
+
+dictionary SecurityEvent {
+    u64 timestamp;
+    string device_id;
+    string app_version;
+    SecurityEventType event_type;
+    string details;
+    boolean success;
+};
+
+interface SecurityEventLogger {
+    void log_event(SecurityEventType event_type, string details, boolean success, ApiClient? api_client);
+    sequence<SecurityEvent> get_events();
+};
+
+dictionary AntiTamperConfig {
+    record<string, string> expected_hashes;
+};
+
+interface AntiTamperChecker {
+    constructor(AntiTamperConfig config);
+    [Throws=ShadowMeshError]
+    boolean verify_app_signature(string package_name, string signature_hash);
+    [Throws=ShadowMeshError]
+    boolean verify_component(string component_name, sequence<u8> component_data);
+    [Throws=ShadowMeshError]
+    boolean is_tampered(record<string, sequence<u8>> components);
+};
+
+dictionary TrafficPreferences {
+  u32? data_limit_mb;
+  boolean prioritize_wifi;
+  boolean restrict_background_data;
+  TrafficModePreference mode_preference;
+};
+
+enum ConnectionStatus {
+  "Disconnected",
+  "ConnectingDirect",
+  "ConnectingFragmented",
+  "ConnectingReality",
+  "Connected",
+  "Paused",
+  "Degraded",
+  "Disconnecting",
+  "Error",
+};
+
+enum TrafficMode {
+  "Normal",
+  "Fragmented",
+  "Reality",
+};
+
+enum TrafficModePreference {
+  "Auto",
+  "Speed",
+  "Stealth",
+};
+
+enum NetworkType {
+  "Unknown",
+  "WiFi",
+  "Cellular",
+  "Ethernet",
+};
+
+dictionary NetworkReport {
+    boolean is_connected;
+    NetworkType network_type;
+    u32? latency_ms;
+    u32? jitter_ms;
+    f32? packet_loss;
+    SpeedTestResult? speed_test;
+    ServerNetworkReport? server_report;
+    boolean captive_portal_detected;
+    boolean dpi_detected;
+    boolean is_protected;
+};
+
+dictionary IdentityInfo {
+    i64 id;
+    string public_key;
+    boolean is_admin;
+    boolean mfa_enabled;
+    string created_at;
+};
+
+dictionary ServerNetworkReport {
+    string client_ip;
+    string geoip; // JSON string
+    boolean potential_dpi;
+    u8 security_score;
+    string recommendation;
+};
+
+interface NetworkDetector {
+    [Throws=ShadowMeshError]
+    NetworkReport detect(boolean run_speed_test);
+};
+
+interface VPNManager {
+  [Throws=ShadowMeshError]
+  void activate(string code, string? token, string? plan, i32 devices_remaining, i64 remaining_days);
+  boolean is_activated();
+  ConnectionStatus get_status();
+  void set_selected_node(VPNNode node);
+  VPNNode? get_selected_node();
+  void set_nodes(sequence<VPNNode> nodes);
+  void refresh_node_latencies();
+  void set_traffic_mode(TrafficMode mode);
+  sequence<VPNNode> get_nodes();
+  VPNNode? get_best_node();
+  [Throws=ShadowMeshError]
+  void initiate_connection(VPNNode node, string device_public_key);
+  void complete_connection();
+  void disconnect();
+  boolean is_connection_timed_out();
+  TrafficMode? get_current_connection_mode();
+  UserSettings get_user_settings();
+  void set_kill_switch_enabled(boolean enabled);
+  boolean is_kill_switch_enabled();
+  void set_traffic_mode_preference(TrafficModePreference preference);
+  TrafficModePreference get_traffic_mode_preference();
+  ConnectionStats get_stats();
+  void set_stats(ConnectionStats stats);
+  ProtocolStats get_protocol_stats();
+  [Throws=ShadowMeshError]
+  void pause(u32 minutes);
+  void resume();
+  boolean check_pause_expiry();
+  i64? get_paused_until();
+  SplitTunnelConfig get_split_tunnel_config();
+  void set_split_tunnel_config(SplitTunnelConfig config);
+  void set_dpi_detected(boolean detected);
+  boolean is_dpi_detected();
+  void set_baseline_ip(string ip);
+  string? get_baseline_ip();
+  ServicePlan get_plan();
+  i32 get_devices_remaining();
+  i64 get_remaining_days();
+  boolean is_ebpf_active();
+  void zeroize();
+  void panic_wipe();
+};
+
+interface ApiClient {
+  void set_device_id(string device_id);
+  void set_auth_token(string? token);
+  void set_traffic_mode(TrafficMode? mode);
+  void set_pow_solution(string solution, string original_challenge);
+  void set_retry_signal(boolean retry);
+  [Throws=ShadowMeshError]
+  sequence<VPNNode> get_nodes();
+  [Throws=ShadowMeshError]
+  ActivationChallenge request_activation_challenge(string device_id);
+  [Throws=ShadowMeshError]
+  ActivationResponse activate(ActivationRequest req);
+  [Throws=ShadowMeshError]
+  VPNConfig get_config(string node_id, string public_key, string? mode);
+  [Throws=ShadowMeshError]
+  HeartbeatResponse heartbeat(
+    HeartbeatRequest req
+  );
+  [Throws=ShadowMeshError]
+  void pause_session();
+  [Throws=ShadowMeshError]
+  void revoke_session();
+  [Throws=ShadowMeshError]
+  void report_compromised(string device_id, string reason);
+  [Throws=ShadowMeshError]
+  string refresh_token();
+  [Throws=ShadowMeshError]
+  HealthStatus check_health();
+  [Throws=ShadowMeshError]
+  string qr_generate(string device_id, string device_name, string os_name, string os_version, string arch);
+  [Throws=ShadowMeshError]
+  string qr_status(string token);
+  [Throws=ShadowMeshError]
+  void qr_authorize(string token);
+  [Throws=ShadowMeshError]
+  IdentityInfo get_identity_info();
+  [Throws=ShadowMeshError]
+  string setup_totp_begin(); // Returns JSON as string for now
+  [Throws=ShadowMeshError]
+  void setup_totp_finish(string code);
+  [Throws=ShadowMeshError]
+  string passkey_register_begin(string username);
+  [Throws=ShadowMeshError]
+  void passkey_register_finish(string username, string response_json);
+  [Throws=ShadowMeshError]
+  string passkey_login_start(string username);
+  [Throws=ShadowMeshError]
+  ActivationResponse passkey_login_finish(string username, string response_json);
+  [Throws=ShadowMeshError]
+  void log_security_event(string event_json);
+};
+
+interface NodeCache {
+  VPNNode? get(string node_id);
+  void put(VPNNode node);
+  void put_all(sequence<VPNNode> nodes);
+  sequence<VPNNode> get_all();
+  f64 hit_rate();
+  [Throws=ShadowMeshError]
+  void save_to_disk(string path);
+  void clear();
+};
+
+interface KillSwitchManager {
+  boolean is_active();
+  boolean is_lockout();
+  void set_lockout(boolean enabled);
+  boolean is_feature_enabled(string feature);
+  void set_feature_enabled(string feature, boolean enabled);
+  [Throws=ShadowMeshError]
+  void check_remote(ApiClient client);
+  void trigger_kill_switch(string reason);
+  void deactivate_kill_switch();
+  void set_fallback_mode(boolean enabled);
+  boolean is_fallback_mode();
+  sequence<KillSwitchEvent> get_audit_log();
+  void save_state_to_cache(KillSwitchState state);
+  KillSwitchState? get_cached_state();
+};
+
+interface TrafficAnalytics {
+  void record_stats(string server_id, ConnectionStats stats);
+  u64 get_total_bytes();
+  u64 get_bytes_this_month();
+  void reset_month();
+};
+
+interface SpeedTest {
+  [Throws=ShadowMeshError]
+  SpeedTestResult run_full_test();
+  [Throws=ShadowMeshError]
+  f64 measure_latency();
+  [Throws=ShadowMeshError]
+  f64 measure_download(u32 size_kb);
+  [Throws=ShadowMeshError]
+  f64 measure_upload(u32 size_kb);
+};
+
+namespace shadowmesh {
+  string? normalize_activation_code(string raw);
+  UserSettings get_default_user_settings();
+  [Throws=ShadowMeshError]
+  SecurityEventLogger create_security_logger(string device_id, string app_version, string storage_dir);
+  [Throws=ShadowMeshError]
+  sequence<string> generate_wireguard_keys();
+  [Throws=ShadowMeshError]
+  VPNConfig parse_wireguard_config(string config_str);
+  sequence<VPNNode> get_mock_nodes();
+  [Throws=ShadowMeshError]
+  PoWSolution solve_pow(PoWChallenge challenge);
+  [Throws=ShadowMeshError]
+  VPNManager create_vpn_manager(UserSettings settings);
+  string get_persistent_device_id();
+  [Throws=ShadowMeshError]
+  ApiClient create_api_client(string base_url);
+  [Throws=ShadowMeshError]
+  ApiClient create_api_client_with_pins(string base_url, sequence<string> pinned_hashes);
+  [Throws=ShadowMeshError]
+  NodeCache create_node_cache(u32 max_size, u32 ttl_seconds);
+  [Throws=ShadowMeshError]
+  KillSwitchManager create_kill_switch_manager();
+  [Throws=ShadowMeshError]
+  TrafficAnalytics create_traffic_analytics();
+  TrafficPreferences create_traffic_preferences();
+  SpeedTest create_speed_test(ApiClient api_client);
+  NetworkDetector create_network_detector(ApiClient api_client, VPNManager? manager);
+
+  // Phase 4: Shadow-Routing & Quantum Tunneling (PROTOCOLS.md §1, §2, §3)
+  VPNNode? shadow_route_best_node(sequence<VPNNode> nodes);
+  string preferred_traffic_mode_for_region(string region_code);
+  bytes decrypt_qr_pairing_payload(bytes ciphertext, string pin);
+  bytes encrypt_qr_pairing_payload(bytes plaintext, string pin);
+  string generate_reality_short_id();
+  RealityConfig? parse_reality_vless_uri(string uri);
+  string generate_dh_private_key();
+  string compute_dh_public_key(string private_key_hex);
+  string compute_dh_shared_secret(string private_key_hex, string other_public_key_hex);
+  string derive_session_token(string dh_shared_secret_hex);
+  u32 get_quantum_mtu();
+  u32 get_quantum_tcp_mss();
+};
+

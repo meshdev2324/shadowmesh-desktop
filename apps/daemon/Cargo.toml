@@ -1,0 +1,89 @@
+[package]
+name = "shadowmesh-daemon"
+version = "0.1.0"
+license = "MIT"
+
+edition = "2024"
+
+[lib]
+name = "shadowmesh_daemon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "shadowmesh-daemon"
+path = "src/main.rs"
+
+[features]
+default = ["mimalloc"]
+# mimalloc for desktop background tasks: low fragmentation and high performance
+mimalloc = ["mimalloc-rs"]
+benchmarking = ["test-utils"]
+test-utils = []
+
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+uuid = { workspace = true }
+zeroize = { version = "1.7", features = ["derive"] }
+keyring = "2.3"
+bytes = "1.9"
+async-trait = "0.1"
+socket2 = { version = "0.5", features = ["all"] }
+arc-swap = "1.7"
+crossbeam-queue = "0.3"
+zbus = { version = "4.4", features = ["tokio"] }
+zvariant = "4.2"
+futures = { workspace = true }
+libc = "0.2"
+prometheus = { version = "0.13", features = ["process"] }
+lazy_static = "1.4"
+axum = { version = "0.7", features = ["macros"] }
+
+# Shared core logic with high-performance features enabled
+shadowmesh-core = { workspace = true, features = ["high-perf"] }
+shadowmesh-common = { workspace = true }
+
+# High-performance memory allocator for desktop background workloads
+mimalloc-rs = { package = "mimalloc", version = "0.1", optional = true }
+
+[dev-dependencies]
+    shadowmesh-daemon = { path = ".", features = ["test-utils"] }
+    mockito = "1.2"
+    criterion = { version = "0.5", features = ["async_tokio"] }
+    proptest = "1.5"
+    futures = "0.3"
+    libc = "0.2"
+    reqwest = { version = "0.12", features = ["json"] }
+
+[[bench]]
+name = "ipc_bench"
+harness = false
+required-features = ["benchmarking"]
+
+[[bench]]
+name = "ipc_performance"
+harness = false
+required-features = ["benchmarking"]
+
+[[bench]]
+name = "tunnel_lifecycle"
+harness = false
+required-features = ["benchmarking"]
+
+[[bench]]
+name = "runtime_overhead"
+harness = false
+required-features = ["benchmarking"]
+
+[[bench]]
+name = "high_concurrency"
+harness = false
+required-features = ["benchmarking"]

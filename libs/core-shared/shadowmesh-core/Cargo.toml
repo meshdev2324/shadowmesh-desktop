@@ -1,0 +1,79 @@
+[package]
+name = "shadowmesh-core"
+version = "0.1.0"
+license = "MIT"
+
+edition = "2021"
+
+[lib]
+name = "shadowmesh_core"
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+
+[features]
+default = []
+high-perf = ["aws-lc-rs", "mimalloc"]
+
+[dependencies]
+shadowmesh-common = { workspace = true }
+zeroize = { version = "1.8", features = ["derive"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uniffi = { version = "0.28", features = ["cli"] }
+rand = { workspace = true }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+base64 = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+chrono = { workspace = true }
+hex = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rustls = { version = "0.23", features = ["ring", "std", "aws-lc-rs"] }
+rustls-native-certs = "0.7"
+rustls-pemfile = "2.1"
+x509-parser = "0.16"
+pem = "3.0"
+quinn = "0.11"
+tokio = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }
+tempfile = "3.0"
+num-bigint = { version = "0.4", features = ["rand"] }
+regex = { workspace = true }
+dirs = "5.0"
+rayon = { workspace = true }
+bytes = "1.9"
+postcard = { version = "1.0", features = ["postcard-derive", "alloc", "use-std"] }
+socket2 = { version = "0.5", features = ["all"] }
+num_cpus = { workspace = true }
+itoa = "1.0"
+libc = "0.2"
+lz4_flex = "0.11"
+async-trait = "0.1"
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+aya = { workspace = true }
+shadowmesh-ebpf-common = { workspace = true }
+subtle = { workspace = true }
+dashmap = "6.0"
+arc-swap = { workspace = true }
+
+# High-performance optional dependencies
+aws-lc-rs = { version = "1.12", optional = true }
+mimalloc = { version = "0.1", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+proptest = "1.5"
+mockito = "1.4"
+tokio = { workspace = true, features = ["full"] }
+
+[build-dependencies]
+uniffi_build = "0.28"
+
+[[bench]]
+name = "core_bench"
+harness = false
