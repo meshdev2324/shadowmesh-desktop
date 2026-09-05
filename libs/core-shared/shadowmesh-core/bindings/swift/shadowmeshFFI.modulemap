@@ -1,0 +1,4 @@
+module shadowmeshFFI {
+    header "shadowmeshFFI.h"
+    export *
+}

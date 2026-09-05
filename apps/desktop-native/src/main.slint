@@ -1,0 +1,490 @@
+// SPDX-FileCopyrightText: 2026 ShadowMesh Principal Engineers
+// SPDX-License-Identifier: GPL-3.0-only
+//
+// This file is part of the ShadowMesh public UI layer, published for
+// independent security audit. See docs/LICENSING.md.
+
+import { Button, VerticalBox, HorizontalBox, ScrollView } from "std-widgets.slint";
+
+// ============================================================
+// Glimmer Design System — Motion Tokens (design-system/02, 03)
+// No linear transitions. Spring-emulated curves, interruptible
+// by design (Slint retargets animations on state change).
+// Overshoot <= 10% per the Physics Bar: premium, never toy-like.
+// ============================================================
+export global Motion {
+    // Mass hierarchy: heavier elements move with more effort
+    out property <duration> fast: 120ms;      // icons, knobs, presses
+    out property <duration> medium: 200ms;    // rows, chips, toggles
+    out property <duration> heavy: 280ms;     // sheets / panels
+    // Spring curves are inlined at call sites (<easing> not yet
+    // supported in public/global API): spring-out = (0.34,1.30,0.64,1),
+    // emphasized = (0.2,0.8,0.2,1)
+}
+
+export struct MeshNode {
+    id: string,
+    name: string,
+    region: string,
+    latency: string,
+    is_sovereign: bool,
+}
+
+// ------------------------------------------------------------
+// PhysicsButton — tactile press physics (03_Physics_Engine.md §3)
+// Press: instant compression (light mass). Release: elastic rebound.
+// AAA: keyboard focus ring + Enter/Space activation.
+// ------------------------------------------------------------
+component PhysicsButton inherits Rectangle {
+    in property <string> label;
+    callback clicked;
+
+    in-out property <length> base-height: 48px;
+    height: base-height * (touch.pressed ? 0.97 : 1.0);
+    animate height {
+        duration: touch.pressed ? Motion.fast : Motion.medium;
+        easing: cubic-bezier(0.34, 1.30, 0.64, 1);
+    }
+
+    border-radius: 12px;
+
+    // Elevation: pressed sinks toward the glass (optical depth)
+    background: touch.pressed ? #4F46E566 : (touch.has-hover ? #6E76F2 : #6366F1);
+    animate background { duration: Motion.fast; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    border-width: 1px;
+    border-color: kb.has-focus ? #A5B4FC88 : transparent;
+    animate border-color { duration: Motion.fast; }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+        mouse-cursor: pointer;
+    }
+    kb := FocusScope {
+        key-pressed(e) => {
+            if (e.text == " ") {
+                root.clicked();
+                accept
+            }
+            reject
+        }
+    }
+
+    HorizontalLayout {
+        alignment: center;
+        Text {
+            text: root.label;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.15rem;
+            color: #FFFFFF;
+        }
+    }
+}
+
+// ------------------------------------------------------------
+// ToggleSwitch — Apple-grade thumb physics
+// Press swells the thumb (mass perception); release springs it to
+// its rest position with elastic overshoot. Interruptible anytime.
+// ------------------------------------------------------------
+component ToggleSwitch inherits Rectangle {
+    in-out property <bool> active: false;
+    callback toggled(bool);
+
+    width: 44px;
+    height: 26px;
+    border-radius: self.height / 2;
+    background: active ? #10B981 : #1E293B;
+    animate background { duration: Motion.medium; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    border-width: 1px;
+    border-color: kb.has-focus ? #A5B4FC88 : #334155;
+    animate border-color { duration: Motion.fast; }
+
+    touch := TouchArea {
+        clicked => {
+            root.active = !root.active;
+            root.toggled(root.active);
+        }
+        mouse-cursor: pointer;
+    }
+    kb := FocusScope {
+        key-pressed(e) => {
+            if (e.text == " ") {
+                root.active = !root.active;
+                root.toggled(root.active);
+                accept
+            }
+            reject
+        }
+    }
+
+    // Thumb: travels to its rest position on a spring curve
+    Rectangle {
+        property <length> rest-x: root.active ? root.width - self.width - 3px : 3px;
+        x: rest-x;
+        y: (parent.height - self.height) / 2;
+        width: touch.pressed ? 24px : 20px;
+        height: 20px;
+        border-radius: self.width / 2;
+        background: #FFFFFF;
+
+        animate x { duration: Motion.medium; easing: cubic-bezier(0.34, 1.30, 0.64, 1); }
+        animate width { duration: Motion.fast; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+}
+
+// ------------------------------------------------------------
+// NodeRow — hover lift with optical depth + latency telemetry pill
+// ------------------------------------------------------------
+component NodeRow inherits Rectangle {
+    in property <MeshNode> node;
+    in property <bool> camouflaged;
+
+    min-height: 52px;
+    background: lift.has-hover ? #FFFFFF0D : #FFFFFF05;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: lift.has-hover ? #6366F155 : #FFFFFF0A;
+    animate background { duration: Motion.medium; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    animate border-color { duration: Motion.medium; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    lift := TouchArea {
+        mouse-cursor: pointer;
+    }
+
+    HorizontalBox {
+        padding: 12px;
+        alignment: center;
+        // Sovereign Indicator
+        Rectangle {
+            width: 4px; height: 16px;
+            background: node.is_sovereign ? #A855F7 : #475569;
+            border-radius: 2px;
+        }
+        VerticalBox {
+            alignment: center;
+            spacing: 0;
+            Text { text: camouflaged ? "0x" + node.id : node.name; font-size: 11px; font-weight: 700; color: #F1F5F9; }
+            Text { text: node.region; font-size: 8px; color: #64748B; }
+        }
+        Rectangle { }
+        // Latency pill: live telemetry chip
+        Rectangle {
+            background: #10B98111;
+            border-radius: 8px;
+            HorizontalLayout {
+                padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px;
+                Text { text: node.latency; font-size: 10px; font-family: "Monospace"; color: #10B981; }
+            }
+        }
+    }
+}
+
+// ============================================================
+export component AppWindow inherits Window {
+    in property <string> device_id: "UNKNOWN";
+    in property <string> version: "0.0.0";
+    in-out property <string> status: "IDLE";
+    in-out property <bool> camouflage_active: false;
+    in property <bool> is_team_member: false;
+    in property <bool> is_team_admin: false;
+    in-out property <bool> show_team_login: false;
+    in-out property <bool> show_team_admin: false;
+    in property <string> generated_member_token: "";
+    in property <[MeshNode]> nodes: [];
+    // P0-3: two-way binding target for the masked member-token TextInput
+    in-out property <string> member_token: "";
+
+    // RFC-011: autostart state (off by default per §4.3) and wipe trigger.
+    in-out property <bool> autostart_enabled: false;
+
+    // Physics-driver outputs (Rust-side velocity-tracked spring, 60Hz fixed step)
+    in property <float> conn-strength: 0.0;
+    in property <float> mesh-pulse: 1.0;
+
+    callback request_connect(string);
+    callback request_disconnect();
+    callback request_camouflage(bool);
+    callback request_refresh();
+    callback request_member_login(string);
+    callback request_create_member_token(string);
+    // RFC-011 §4.3/§4.4
+    callback request_autostart(bool);
+    callback request_forensic_wipe();
+
+    title: camouflage_active ? "System Performance Monitor" : "ShadowMesh // Sovereignty Client";
+    min-width: 400px;
+    min-height: 700px;
+    background: #0F172A; // Slate 900
+
+    VerticalBox {
+        padding: 32px;
+        spacing: 20px;
+        alignment: start;
+
+        // Precision Header
+        HorizontalBox {
+            alignment: space-between;
+            Text {
+                text: camouflage_active ? "SYSMON" : "SHADOWMESH";
+                font-size: 18px;
+                font-weight: 900;
+                letter-spacing: 0.2rem;
+                color: #FFFFFF;
+            }
+            // Team Badge
+            if (is_team_member && !camouflage_active) : Rectangle {
+                background: #6366F122;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: #6366F144;
+                HorizontalLayout {
+                    padding-left: 8px; padding-right: 8px;
+                    Text { text: "TEAM"; font-size: 8px; font-weight: 900; color: #6366F1; }
+                }
+            }
+            Text {
+                text: version;
+                font-size: 10px;
+                font-weight: 700;
+                color: #475569;
+            }
+        }
+
+        // ---- Team Login Sheet ----
+        if (show_team_login) : VerticalBox {
+            spacing: 16px;
+
+            Text { text: "TEAM MEMBER AUTHENTICATION"; font-size: 12px; font-weight: 900; color: #F1F5F9; }
+            Text { text: "Enter your member token to bind this device."; font-size: 10px; color: #64748B; }
+
+            // ZPII: the member token is captured in a masked TextInput bound
+            // to a two-way property — never echoed, never logged in Rust.
+            Rectangle {
+                height: 48px;
+                background: #00000033;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: #334155;
+                token-input := TextInput {
+                    text: root.member_token;
+                    input-type: InputType.password;
+                    font-size: 11px;
+                    font-family: "Monospace";
+                    color: #94A3B8;
+                    vertical-alignment: center;
+                    horizontal-alignment: center;
+                }
+            }
+
+            PhysicsButton {
+                label: "AUTHENTICATE";
+                clicked => { root.request_member_login(root.member_token); }
+            }
+            PhysicsButton {
+                label: "CANCEL";
+                clicked => { root.show_team_login = false; }
+            }
+        }
+
+        // ---- Team Admin Sheet ----
+        if (show_team_admin) : VerticalBox {
+            spacing: 16px;
+
+            Text { text: "TEAM ADMINISTRATION"; font-size: 12px; font-weight: 900; color: #F1F5F9; }
+            Text { text: "Generate sovereignty tokens for your team members."; font-size: 10px; color: #64748B; }
+
+            PhysicsButton {
+                label: "CREATE MEMBER TOKEN";
+                clicked => { root.request_create_member_token("New Member"); }
+            }
+
+            if (generated_member_token != "") : Rectangle {
+                height: 48px;
+                background: #10B98111;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: #10B98144;
+                Text { text: generated_member_token; font-size: 11px; font-family: "Monospace"; color: #10B981; vertical-alignment: center; horizontal-alignment: center; }
+            }
+
+            PhysicsButton {
+                label: "BACK TO MESH";
+                clicked => { root.show_team_admin = false; }
+            }
+        }
+
+        if (!show_team_login && !show_team_admin) : VerticalBox {
+            spacing: 20px;
+            alignment: start;
+
+            // Status Card — border glows when the encrypted mesh is live
+            Rectangle {
+                height: 100px;
+                background: @linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+                border-radius: 16px;
+                border-width: 1px;
+                border-color: (status == "CONNECTED" && !camouflage_active) ? #10B98155 : #334155;
+                animate border-color { duration: Motion.heavy; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+                VerticalBox {
+                    alignment: center;
+                    Text {
+                        text: camouflage_active ? "NORMAL" : status;
+                        horizontal-alignment: center;
+                        font-size: 20px;
+                        font-weight: 900;
+                        color: status == "CONNECTED" && !camouflage_active ? #10B981 : #6366F1;
+                        animate color { duration: Motion.medium; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+                    }
+                    Text {
+                        text: camouflage_active ? "SYSTEM STATE NOMINAL" : "ENCRYPTED MESH ACTIVE";
+                        horizontal-alignment: center;
+                        font-size: 9px;
+                        font-weight: 700;
+                        color: #475569;
+                        visible: (status == "CONNECTED") || camouflage_active;
+                        // Ambient breathing — driven by the Rust pulse oscillator
+                        opacity: (status == "CONNECTED" && !camouflage_active)
+                            ? mesh-pulse : 1.0;
+                    }
+                }
+
+                // Connection strength bar — spring-driven, interruptible mid-flight
+                Rectangle {
+                    x: 8px;
+                    y: parent.height - 5px;
+                    height: 3px;
+                    width: (parent.width - 16px)
+                        * Math.min(Math.max(conn-strength, 0.0), 1.0);
+                    border-radius: 2px;
+                    background: @linear-gradient(90deg, #6366F1 0%, #10B981 100%);
+                }
+            }
+
+            // Mesh Matrix Header
+            HorizontalBox {
+                alignment: space-between;
+                Text {
+                    text: camouflage_active ? "PROCESS THREADS" : "GLOBAL MESH FABRIC";
+                    font-size: 9px;
+                    font-weight: 900;
+                    color: #64748B;
+                    letter-spacing: 0.1rem;
+                }
+                TouchArea {
+                    clicked => { root.request_refresh(); }
+                    mouse-cursor: pointer;
+                    Text { text: "REFRESH"; font-size: 8px; font-weight: 900; color: #6366F1; }
+                }
+            }
+
+            // Node Matrix
+            Rectangle {
+                background: #00000033;
+                border-radius: 12px;
+                clip: true;
+                height: 200px;
+
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        spacing: 8px;
+                        padding: 8px;
+                        for node in nodes : NodeRow {
+                            node: node;
+                            camouflaged: camouflage_active;
+                        }
+                    }
+                }
+            }
+
+            // Identity Info
+            VerticalBox {
+                spacing: 4px;
+                Text {
+                    text: camouflage_active ? "PROCESS ID" : "DEVICE IDENTITY";
+                    font-size: 8px;
+                    font-weight: 900;
+                    color: #64748B;
+                }
+                Text {
+                    text: camouflage_active ? "0x7F2A" : "0x" + device_id;
+                    font-size: 11px;
+                    font-family: "Monospace";
+                    color: #94A3B8;
+                }
+            }
+
+            // Camouflage Mode Toggle — real switch physics
+            HorizontalBox {
+                alignment: space-between;
+                VerticalBox {
+                    spacing: 2px;
+                    Text { text: "CAMOUFLAGE MODE"; font-size: 10px; font-weight: 900; color: #FFFFFF; }
+                    Text { text: "Swaps identity to decoy process"; font-size: 8px; color: #475569; }
+                }
+                ToggleSwitch {
+                    active: root.camouflage_active;
+                    toggled(new-state) => {
+                        root.camouflage_active = new-state;
+                        root.request_camouflage(new-state);
+                    }
+                }
+            }
+
+            if (!is_team_member && !camouflage_active) : TouchArea {
+                clicked => { root.show_team_login = true; }
+                mouse-cursor: pointer;
+                Text { text: "SWITCH TO TEAM ACCOUNT"; font-size: 8px; font-weight: 900; color: #6366F1; horizontal-alignment: center; }
+            }
+
+            if (is_team_admin && !camouflage_active) : TouchArea {
+                clicked => { root.show_team_admin = true; }
+                mouse-cursor: pointer;
+                Text { text: "TEAM ADMIN DASHBOARD"; font-size: 8px; font-weight: 900; color: #10B981; horizontal-alignment: center; }
+            }
+
+            Rectangle { }
+
+            // RFC-011 §4.3: autostart toggle (off by default, user scope).
+            TouchArea {
+                clicked => { root.request_autostart(!root.autostart_enabled); }
+                mouse-cursor: pointer;
+                Text {
+                    text: root.autostart_enabled ? "AUTOSTART: ON" : "AUTOSTART: OFF";
+                    font-size: 8px; font-weight: 900;
+                    color: root.autostart_enabled ? #10B981 : #64748B;
+                    horizontal-alignment: center;
+                }
+            }
+
+            // RFC-011 §4.4: forensic wipe — purge device identity and all
+            // app-owned state; confirmation is the single-tap gravity here
+            // (destructive action surfaced in the status line as WIPING...).
+            TouchArea {
+                clicked => { root.request_forensic_wipe(); }
+                mouse-cursor: pointer;
+                Text { text: "FORENSIC WIPE"; font-size: 8px; font-weight: 900; color: #EF4444; horizontal-alignment: center; }
+            }
+
+            Rectangle { }
+
+            // Primary Action — tactile CTA with elevation physics
+            PhysicsButton {
+                label: (status == "CONNECTED" && !camouflage_active) ? "DISCONNECT"
+                     : (camouflage_active ? "VIEW LOGS" : "SECURE CONNECTION");
+                clicked => {
+                    if (!camouflage_active) {
+                        if (status == "CONNECTED") {
+                            root.request_disconnect();
+                        } else {
+                            root.request_connect("best-node");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

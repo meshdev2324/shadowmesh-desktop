@@ -1,0 +1,33 @@
+[package]
+name = "shadowmesh-desktop-native"
+version = "0.1.0"
+edition = "2024"
+authors = ["ShadowMesh Principal Engineers"]
+description = "High-Fidelity Native Desktop Client (Slint/winit)"
+license = "GPL-3.0-only"
+
+[dependencies]
+shadowmesh-core = { path = "../../libs/core-shared/shadowmesh-core" }
+shadowmesh-daemon = { path = "../daemon" }
+# Default features = winit backend + FemtoVG renderer (no Qt6 linkage).
+# GPL-3.0 client publication satisfies Slint's licensing transparently.
+slint = "1.9"
+tray-icon = "0.19"
+image = "0.25"
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = "0.3"
+anyhow = { workspace = true }
+uuid = { workspace = true }
+zeroize = { workspace = true }
+# RFC-011: explicit (was only transitive via slint) — config/autostart paths.
+dirs = "5.0"
+
+[build-dependencies]
+slint-build = "1.9"
+
+[[bin]]
+name = "shadowmesh-desktop"
+path = "src/main.rs"
