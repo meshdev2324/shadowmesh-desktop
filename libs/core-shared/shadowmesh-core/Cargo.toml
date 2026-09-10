@@ -1,0 +1,124 @@
+[package]
+name = "shadowmesh-core"
+version = "0.1.0"
+license = "MIT"
+
+edition = "2021"
+
+[lib]
+name = "shadowmesh_core"
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "shadowmesh"
+path = "src/main.rs"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "uniffi-bindgen.rs"
+
+[features]
+default = ["ring"]
+high-perf = ["mimalloc"]
+ring = ["rustls/ring"]
+# Test-only: exposes KDF verification digests for property tests. Never enable in production.
+__test-kdf-verify = []
+
+[dependencies]
+shadowmesh-common = { workspace = true }
+zeroize = { version = "1.8", features = ["derive"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uniffi = { version = "0.28", features = ["cli"] }
+rand = { workspace = true }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+base64 = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+sha1 = { workspace = true }
+md-5 = { workspace = true }
+hkdf = { workspace = true }
+hmac = { workspace = true }
+aes = { workspace = true }
+ctr = { workspace = true }
+blake3 = { version = "1.8", default-features = false, features = ["std"] }
+ring = "0.17"
+chrono = { workspace = true }
+hex = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+rustls = { version = "0.23", default-features = false, features = ["std", "ring"] }
+tokio-rustls = "0.26"
+rustls-native-certs = "0.7"
+rustls-pemfile = "2.1"
+x509-parser = "0.16"
+pem = "3.0"
+quinn = "0.11"
+tokio = { workspace = true }
+anyhow = { workspace = true }
+uuid = { workspace = true }
+tempfile = "3.0"
+num-bigint = { version = "0.4", features = ["rand"] }
+regex = { workspace = true }
+dirs = "5.0"
+rayon = { workspace = true }
+bytes = "1.9"
+postcard = { version = "1.0", features = ["postcard-derive", "alloc", "use-std"] }
+socket2 = { version = "0.5", features = ["all"] }
+num_cpus = { workspace = true }
+itoa = "1.0"
+libc = "0.2"
+lz4_flex = "0.11"
+async-trait = "0.1"
+async-channel = "2.3"
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+aya = { workspace = true }
+shadowmesh-ebpf-common = { workspace = true }
+subtle = { workspace = true }
+dashmap = "6.0"
+arc-swap = { workspace = true }
+# Registry release (BSD-3-Clause) instead of the git source: cargo-deny's
+# [sources] policy allows only the crates.io registry, and the same 0.7.1
+# is published there — pinned, checksum-verified supply chain.
+boringtun = { version = "0.7.1", default-features = false }
+android_logger = "0.14"
+log = "0.4"
+smoltcp = { version = "0.12", features = ["std", "log", "medium-ip", "proto-ipv4", "proto-ipv6", "socket-raw"] }
+futures-util = "0.3"
+ipnet = "2.9"
+parking_lot = "0.12"
+tun = { version = "0.6", features = ["async"] }
+etherparse = "0.13"
+url = "2.5"
+httparse = "1.9"
+nom = "7.1"
+metrics = "0.22"
+# default-features off: drops the hyper-tls/openssl HTTP listener (not cross-
+# compilable for Android, and an open :9000 listener is unwanted on mobile).
+# Metrics are served by the server's own /metrics route or via the handle below.
+metrics-exporter-prometheus = { version = "0.13", default-features = false }
+clap = { version = "4.4", features = ["derive"] }
+tonic = "0.10"
+prost = "0.12"
+tower = "0.4"
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# High-performance optional dependencies
+aws-lc-rs = { version = "1.12", optional = true }
+mimalloc = { version = "0.1", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+proptest = "1.5"
+mockito = "1.4"
+tokio = { workspace = true, features = ["full"] }
+rcgen = "0.13"
+
+[build-dependencies]
+uniffi_build = "0.28"
+tonic-build = "0.10"
+protobuf-src = "1.1"
+
+[[bench]]
+name = "core_bench"
+harness = false

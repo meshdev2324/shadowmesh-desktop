@@ -1,0 +1,76 @@
+[package]
+name = "shadowmesh-core-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+shadowmesh-core = { path = ".." }
+tokio = { version = "1", features = ["rt", "macros", "io-util"] }
+bytes = "1.9"
+
+[[bin]]
+name = "fragment_fuzzer"
+path = "fuzz_targets/fragment_fuzzer.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "binary_parser"
+path = "fuzz_targets/binary_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "vless_handshake"
+path = "fuzz_targets/vless_handshake.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "shadowsocks_address"
+path = "fuzz_targets/shadowsocks_address.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "vmess_header"
+path = "fuzz_targets/vmess_header.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "trojan_handshake"
+path = "fuzz_targets/trojan_handshake.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "shadowsocks_aead_stream"
+path = "fuzz_targets/shadowsocks_aead_stream.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "shadowsocks_udp_packet"
+path = "fuzz_targets/shadowsocks_udp_packet.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "vmess_aead_stream"
+path = "fuzz_targets/vmess_aead_stream.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "hysteria_obfuscation"
+path = "fuzz_targets/hysteria_obfuscation.rs"
+test = false
+doc = false

@@ -1,0 +1,106 @@
+# ShadowMesh Core — strict GPL-free license policy (cargo-deny 0.20.x syntax).
+#
+# This is the CORE enforcement boundary documented in docs/LICENSING.md
+# ("Core GPL-Free Audit Record"). Unlike the ROOT /deny.toml, which globally
+# allows GPL-3.0-only for the Slint desktop client (apps/desktop-native),
+# this config must NEVER allow a copyleft license: the core crate is linked
+# into every shipping target under a proprietary client license.
+#
+# Verified against cargo-deny 0.20.2. Old 0.12-era keys (advisories.vulnerability
+# as a lint level, licenses.unlicensed / licenses.copyleft) were removed upstream
+# (https://github.com/EmbarkStudios/cargo-deny/pull/611) and caused hard config
+# deserialize errors — this rewrite restores the core's enforceable policy.
+#
+# Scope intentionally: this config is only meaningful when paired with
+#   --manifest-path libs/core-shared/shadowmesh-core/Cargo.toml
+# (a core-scoped graph), which is how CI runs it (core-license-gate job).
+
+# The graph table pins the crate graph to ShadowMesh's SHIPPING targets only.
+# This is the honest way to handle r-efi (LGPL-2.1-or-later, via getrandom):
+# it is target-gated to `target_os = "uefi"` and never compiled for Linux/
+# Android/macOS/Windows, so it is pruned from the graph here instead of being
+# allow-listed. NO LGPL identifier appears in [licenses.allow] below.
+[graph]
+targets = [
+    "x86_64-unknown-linux-gnu",      # Linux server/daemon
+    "aarch64-unknown-linux-gnu",     # Linux ARM64 nodes
+    "aarch64-linux-android",         # Android client (JNI)
+    "x86_64-pc-windows-msvc",        # Windows client
+    "x86_64-apple-darwin",           # macOS client (x64)
+    "aarch64-apple-darwin",          # macOS client (Apple Silicon)
+]
+all-features = false
+
+# cargo deny check advisories
+# 0.20.x semantics: vulnerability/unsound/notice advisories are DENIED by
+# default (no per-kind lint key anymore); unmaintained takes a scope value.
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Same accepted-risk IDs as the ROOT /deny.toml (do not diverge without a
+# tracked migration note in docs/LICENSING.md). Filtered here to the subset
+# that actually appears in the CORE graph; unused-ignored-advisory = "allow"
+# keeps the list in sync with the root file without noise.
+# unmaintained: policy is strict — any crate in the core graph that is
+# unmaintained is an error (root default is warn-only "all" scope).
+unmaintained = "all"
+# unsound advisories default to denying workspace-scoped crates; tighten to all.
+unsound = "all"
+yanked = "warn"
+unused-ignored-advisory = "allow"
+ignore = [
+    "RUSTSEC-2025-0141", # bincode unmaintained (uniffi_macros 0.28 transitive; upgrade path: uniffi >= 0.29)
+    "RUSTSEC-2024-0436", # paste unmaintained (uniffi 0.28 transitive; same upgrade path)
+    "RUSTSEC-2025-0134", # rustls-pemfile unmaintained (rustls-native-certs 0.7 / direct; migrate to rustls-pki-types PemObject)
+    # h2 0.3.x (via tonic 0.10 -> hyper 0.14) unbounded empty DATA frames — LOW severity,
+    # outbound-only usage; fix tracked: migrate server to reqwest 0.12 (h2 0.4.16+)
+    "RUSTSEC-2026-0258",
+]
+
+# cargo deny check licenses
+# STRICT permissive-only allowlist — the enforcement gap closer. The old
+# `copyleft = "deny"` key is gone; the equivalent 0.20.x mechanism is exactly
+# this: an exhaustive allow list containing NO copyleft identifiers.
+# Observed core-tree licenses NOT listed here would FAIL (deny-by-default),
+# which is the intent: adding a GPL/AGPL/LGPL dependency to shadowmesh-core
+# now breaks this check even though the ROOT deny.toml allows GPL globally.
+[licenses]
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "MIT-0",                           # aws-lc-sys, dunce (MIT-0 is non-copyleft, permissive)
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "OpenSSL",                         # ring's OpenSSL-derived code (ring is ISC + OpenSSL)
+    "Zlib",
+    "0BSD",                            # BSD Zero Clause (smoltcp, managed)
+    "WTFPL",                           # tun crate (non-copyleft, FSF-libre)
+    "CC0-1.0",                         # dunce
+    "MPL-2.0",                         # uniffi (weak/file-level copyleft, OSI-approved; core-linkable)
+    "CDLA-Permissive-2.0",              # webpki-roots
+]
+# Per-crate exceptions stay deliberately EMPTY: a crate may only use a license
+# from the global allow list above. If a genuinely-permissive license is ever
+# rejected here, add it to `allow` with justification — do NOT add GPL/AGPL/LGPL.
+exceptions = []
+
+# cargo deny check bans
+# Keep the original hard bans from the core's policy. multiple-versions stays
+# at warn (the tree legitimately has several; noise-gating duplicates is not
+# the purpose of this config).
+[bans]
+multiple-versions = "warn"
+deny = [
+    { name = "lazy_static", reason = "Use OnceLock or LazyLock instead" },
+    { name = "openssl", reason = "Prefer aws-lc-rs or rustls for better safety" },
+]
+
+# cargo deny check sources
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
