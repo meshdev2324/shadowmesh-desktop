@@ -1,0 +1,7 @@
+{
+  "kill_switch_enabled": false,
+  "dns_leak_protection": true,
+  "emergency_recovery_enabled": true,
+  "dns_servers": ["10.8.0.1"],
+  "allowed_interfaces": ["tun0", "lo"]
+}

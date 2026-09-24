@@ -1,0 +1,7 @@
+[bindings.kotlin]
+package_name = "uniffi.shadowmesh"
+cdylib_name = "shadowmesh_core"
+module_name = "shadowmesh"
+
+[bindings.swift]
+module_name = "shadowmesh"

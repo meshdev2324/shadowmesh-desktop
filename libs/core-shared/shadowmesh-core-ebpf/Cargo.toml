@@ -1,0 +1,18 @@
+[package]
+name = "shadowmesh-core-ebpf"
+version = "0.1.0"
+license = "MIT"
+
+edition = "2024"
+publish = false
+
+[dependencies]
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+shadowmesh-ebpf-common = { path = "../shadowmesh-ebpf", default-features = false, features = ["ebpf"] }
+network-types = "0.0.5"
+
+[[bin]]
+name = "shadowmesh-core-ebpf"
+path = "src/main.rs"
+test = false
