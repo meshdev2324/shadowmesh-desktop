@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package shadowmesh;
+
+service ShadowMeshControl {
+  rpc GetStatus(Empty) returns (StatusResponse);
+  rpc GetStats(Empty) returns (StatsResponse);
+  rpc ReloadConfig(Empty) returns (ReloadResponse);
+}
+
+message Empty {}
+
+message StatusResponse {
+  string version = 1;
+  uint64 uptime = 2;
+}
+
+message StatsResponse {
+  uint32 active_connections = 1;
+  uint64 total_upload = 2;
+  uint64 total_download = 3;
+}
+
+message ReloadResponse {
+  bool success = 1;
+  string message = 2;
+}

@@ -1,0 +1,19 @@
+{
+  "auth_token": "valid-token",
+  "activation_code": "1234512345123451234512345",
+  "private_key": null,
+  "public_key": null,
+  "enrollment_token": null,
+  "selected_node_id": null,
+  "device_label": null,
+  "traffic_mode": "",
+  "plan_name": "Pro",
+  "devices_remaining": 4,
+  "remaining_days": 365,
+  "kill_switch": false,
+  "auto_connect": false,
+  "dns_over_https": false,
+  "duress_pin_hash": null,
+  "obfuscation_enabled": false,
+  "smart_fallback_enabled": false
+}
