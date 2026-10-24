@@ -1,0 +1,125 @@
+name: Desktop CI/CD (Public Standalone)
+
+# Native Rust desktop client (apps/desktop-native) + system daemon (apps/daemon).
+# Replaces the retired Tauri app pipeline (apps/desktop was removed).
+on:
+  push:
+    branches: [main, master]
+    tags: ["desktop-v*"]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_BUILD_JOBS: 2
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-C link-arg=-Wl,--threads=1"
+
+jobs:
+  test_desktop:
+    name: Lint & Test Desktop (Rust)
+    if: github.repository != 'meshdev2324/shadowmesh-private'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxdo-dev libappindicator3-dev librsvg2-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/desktop-native
+            apps/daemon
+
+      - name: Format Check
+        run: cargo fmt -p shadowmesh-desktop-native -p shadowmesh-daemon -- --check
+
+      - name: Clippy (Slint regression gate — compiles .slint via build.rs)
+        run: cargo clippy -p shadowmesh-desktop-native -p shadowmesh-daemon --all-targets -- -D warnings
+
+      # P1-6: unit tests (spring physics, single-instance guard). libxdo is
+      # installed above, so the tray/muda link path resolves on CI runners.
+      - name: Test (Desktop Native)
+        run: cargo test -p shadowmesh-desktop-native
+
+  create_release:
+    name: Build & Release Desktop - ${{ matrix.platform }}
+    if: github.repository != 'meshdev2324/shadowmesh-private' && startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: test_desktop
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-latest
+          - platform: windows-x64
+            os: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libxdo-dev libappindicator3-dev librsvg2-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/desktop-native
+            apps/daemon
+
+      - name: Build Release Binaries
+        run: cargo build --release -p shadowmesh-desktop-native -p shadowmesh-daemon
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          VERSION="${GITHUB_REF_NAME#desktop-v}"
+          mkdir -p dist
+          cp target/release/shadowmesh-desktop target/release/shadowmesh-daemon dist/
+          tar -czf "dist/shadowmesh-desktop-v${VERSION}-linux-x64.tar.gz" -C dist shadowmesh-desktop shadowmesh-daemon
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $VERSION = $env:GITHUB_REF_NAME -replace '^desktop-v',''
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item target/release/shadowmesh-desktop.exe dist/
+          Copy-Item target/release/shadowmesh-daemon.exe dist/
+          Compress-Archive -Path dist/shadowmesh-desktop.exe, dist/shadowmesh-daemon.exe -DestinationPath "dist/shadowmesh-desktop-v${VERSION}-windows-x64.zip"
+
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadowmesh-desktop-${{ matrix.platform }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+          retention-days: 7
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+          draft: false
+          prerelease: false

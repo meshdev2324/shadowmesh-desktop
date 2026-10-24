@@ -1,0 +1,61 @@
+[package]
+name = "shadowmesh-desktop-native"
+version = "0.1.0"
+edition = "2024"
+authors = ["ShadowMesh Principal Engineers"]
+description = "High-Fidelity Native Desktop Client (Slint/winit)"
+# Slint is triple-licensed (GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR
+# LicenseRef-Slint-Software-3.0). We distribute the desktop app under the
+# royalty-free desktop license — free of charge, desktop-only use, no source
+# obligation. License text ships in the crate and in LICENSES/.
+license = "LicenseRef-Slint-Royalty-free-2.0"
+
+[dependencies]
+shadowmesh-core = { path = "../../libs/core-shared/shadowmesh-core" }
+shadowmesh-daemon = { path = "../daemon" }
+# Default features = winit backend + FemtoVG renderer (no Qt6 linkage).
+# GPL-3.0 client publication satisfies Slint's licensing transparently.
+slint = "1.9"
+tray-icon = "0.19"
+image = "0.25"
+# v2 pairing UX: render the session token as a QR image the authorized
+# phone can scan (MIT, pure Rust — no GPL ingestion; `image` already
+# provides the PNG encoding path).
+qrcode = { version = "0.14", default-features = false, features = ["image"] }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = "0.3"
+anyhow = { workspace = true }
+uuid = { workspace = true }
+zeroize = { workspace = true }
+# RFC-011: explicit (was only transitive via slint) — config/autostart paths.
+dirs = "5.0"
+# L10's C-2 — the desktop's crash-artefact posture: prctl(PR_SET_DUMPABLE)/
+# setrlimit(RLIMIT_CORE) in `dumpability.rs`. Already an indirect dependency
+# (core-shared), so this adds no new package to the graph.
+libc = "0.2"
+
+[build-dependencies]
+slint-build = "1.9"
+
+# Headless Slint backend, dev-only.
+#
+# Slint refuses to create any component until a platform backend has been
+# selected, and CI runners have no display. Slint's own testing backend
+# simulates a windowing system without one, so the F40 attribution tests can
+# instantiate the real components and assert that the upstream `AboutSlint`
+# widget was genuinely instantiated.
+#
+# This is a dev-dependency: it is never linked into the shipped binary. The
+# exact-version pin is deliberate — this crate is an internal Slint crate that
+# does not follow semver, so a Slint upgrade must break the build loudly
+# rather than silently pull a mismatched backend. The crate is already
+# present in Cargo.lock, so this adds no new package to the dependency graph.
+[dev-dependencies]
+i-slint-backend-testing = "=1.17.1"
+
+[[bin]]
+name = "shadowmesh-desktop"
+path = "src/main.rs"
